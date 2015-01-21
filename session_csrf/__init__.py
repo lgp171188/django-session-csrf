@@ -76,6 +76,14 @@ class CsrfMiddleware(object):
         if getattr(request, 'csrf_processing_done', False):
             return
 
+        # Allow @anonymous_csrf_exempt_always decorator
+        # to override even ANON_ALWAYS=True
+        if hasattr(request, 'user') and not request.user.is_authenticated():
+            if getattr(view_func, 'anonymous_csrf_exempt_always', False):
+                if hasattr(request, '_anon_csrf_key'):
+                    del request._anon_csrf_key
+                    return
+
         # Allow @csrf_exempt views.
         if getattr(view_func, 'csrf_exempt', False):
             return
@@ -148,6 +156,11 @@ def anonymous_csrf(f):
 def anonymous_csrf_exempt(f):
     """Like @csrf_exempt but only for anonymous requests."""
     f.anonymous_csrf_exempt = True
+    return f
+
+def anonymous_csrf_exempt_always(f):
+    """Like @anonymous_csrf_exempt but even when ANON_ALWAYS is True"""
+    f.anonymous_csrf_exempt_always = True
     return f
 
 
